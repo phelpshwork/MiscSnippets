@@ -1,6 +1,7 @@
 import requests
 import json
 import arcpy
+import os
 
 # SPIRE AIS ENDPOINT
 ENDPOINT = 'https://ais.spire.com/vessels'
@@ -8,7 +9,7 @@ ENDPOINT = 'https://ais.spire.com/vessels'
 FORMAT = 'json'
 
 # YOUR TOKEN
-AUTH_TOKEN = ''  # AUTH TOKEN HERE
+AUTH_TOKEN = '' # arcpy.GetParameterAsText(0) # token as first param
 
 HEADERS = {
     "Authorization": "Bearer {}".format(AUTH_TOKEN),
@@ -34,20 +35,23 @@ class ShipPoint:
 
 # gets input drawn parameter (polygon)
 gj = arcpy.GetParameter(0)
-
+fcname = "Returned_Ships"
 
 def build_feature_class(ships):
-    arcpy.env.workspace = wk = arcpy.GetParameterAsText(1)
+    
 
     #r"C:\Users\heat3463\Documents\ArcGIS\Projects\Spire_API_Test\Spire_API_Test.gdb"
     sr = arcpy.SpatialReference(4326)
+    
+    arcpy.env.workspace = wk = arcpy.env.scratchGDB
+    arcpy.AddMessage(arcpy.env.scratchGDB)
+    arcpy.AddMessage(wk)
 
-    fcname = "Returned_ships"
+    #fcname = "Returned_ships"
     if arcpy.Exists(fcname) is False:
-        arcpy.CreateFeatureclass_management(wk, fcname, "POINT", spatial_reference=sr)  # NOQA
-
-    arcpy.management.AddFields(fcname, [["ID", "TEXT", "ID", 50],  # NOQA
-                                        ["NAME", 'TEXT', "NAME", 20],  # NOQA
+        arcpy.CreateFeatureclass_management(wk, fcname, "POINT", spatial_reference=sr) # NOQA
+    
+    arcpy.management.AddFields(fcname, [["ID", "TEXT", "ID", 50], ["NAME", 'TEXT', "NAME", 40],  # NOQA
                                         ["MMSI", 'TEXT', "MMSI", 20],  # NOQA
                                         ['SHIP_TYPE', 'TEXT', 'SHIP_TYPE', 50],
                                         ["SHIP_CLASS", 'TEXT', "SHIP_CLASS", 50],
@@ -60,7 +64,7 @@ def build_feature_class(ships):
 
     iCur = arcpy.da.InsertCursor(fcname, entslist)
 
-    # arcpy.AddMessage("getting here")
+    arcpy.AddMessage("getting here")
     for ship in ships:
         adds = []
         adds.append(ship.id)
@@ -77,7 +81,10 @@ def build_feature_class(ships):
         adds.append((ly, lx))
 
         iCur.insertRow(adds)
-
+    
+    fs=arcpy.FeatureSet()
+    fs.load(os.path.join(arcpy.env.scratchGDB, fcname))
+    arcpy.SetParameter(1, fs)    
     del iCur
 
 
@@ -97,7 +104,8 @@ if __name__ == '__main__':
 
     response = requests.get(svrReq, headers = HEADERS)
     datajson = json.loads(response.text)
-     
+    # thetext = json.dumps(datajson, indent=2)   # makes nicely formatted JSON
+    
     ships = []
 
     # 1. get total
@@ -106,37 +114,6 @@ if __name__ == '__main__':
         if 'total' in p:
             total = p['total']
             arcpy.AddMessage("Number of ships detected in area: {}".format(total))
-        # if 'next' in p:
-        #     next_page = p['next']
-        # else:
-        #     next_page = ""
-
-    # for every page:
-
-    # session = requests.Session()
-
-# def get_jobs():
-#     url = "https://api.angel.co/1/tags/1664/jobs" 
-#     first_page = session.get(url).json()
-#     yield first_page
-#     num_pages = first_page['last_page']
-
-#     for page in range(2, num_pages + 1):
-#         next_page = session.get(url, params={'page': page}).json()
-#         yield next_page['page']
-
-# for page in get_jobs():
-# https://stackoverflow.com/questions/17777845/python-requests-arguments-dealing-with-api-pagination
-
-# since = data['paging']['next']
-#                 #if request already has a next, strip it out
-#                 if request.find("next=") != -1:
-#                     t = request.find("next=") + len("next=")
-#                     request=request[:t] #strip out
-#                     request = request + since
-#                 else:
-#                     request = request + "&next=%s" % since
-               
 
     if 'data' in datajson:
         for d in datajson['data']:
@@ -174,10 +151,6 @@ if __name__ == '__main__':
             ship = ShipPoint(ship_id, name, mmsi, ship_type, ship_class, flag, las_k_pos, updated_at, gen_class, ind_class)
             ships.append(ship)
 
-    
-    # if next_page != "":  # go to next page
-    #     arcpy.AddMessage("Paging...")
-
     # Now we have a ships array with attributes. Write to feature class.
     build_feature_class(ships)
-
+    
