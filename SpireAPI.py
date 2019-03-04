@@ -9,7 +9,7 @@ ENDPOINT = 'https://ais.spire.com/vessels'
 FORMAT = 'json'
 
 # YOUR TOKEN
-AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjdXN0b21lciI6eyJpZCI6IjMzNSIsIm5hbWUiOiJFc3JpIiwidXVpZCI6IjMzNSJ9LCJpc3MiOiJzcGlyZS5jb20iLCJpYXQiOjE1MDkxNTEzMzZ9.hrDU77IOkPt6VwYIvdM0UVcQ-rLETLewDfDwuEw111M' # arcpy.GetParameterAsText(0) # token as first param
+AUTH_TOKEN = 'eyJhbGciOiJIU***exampledoenstwork***pYXQiOjE1MDkxNTEzMzZ9.hrDU77IOkPt6VwYIvdM0UVcQ-rLETLewDfDwuEw111M' # arcpy.GetParameterAsText(0) # token as first param
 
 HEADERS = {
     "Authorization": "Bearer {}".format(AUTH_TOKEN),
